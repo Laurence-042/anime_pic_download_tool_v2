@@ -1,0 +1,2 @@
+# anime_pic_download_tool_v2
+我的 anime_pic_download_tool 重制版
