@@ -3,8 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 import re
+
+if TYPE_CHECKING:
+    from http_client import HttpClient
 
 
 @dataclass
@@ -40,7 +43,7 @@ class BaseAdapter(ABC):
     async def parse(
         self,
         url: str,
-        http: "HttpClient",
+        http: HttpClient,
         want_indices: list[int] | None = None,
     ) -> DownloadPlan:
         ...

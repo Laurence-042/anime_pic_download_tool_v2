@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 import asyncio
+
+if TYPE_CHECKING:
+    from http_client import HttpClient
 
 
 @dataclass
@@ -22,7 +27,7 @@ class DownloadResult:
 
 async def download_all(
     jobs: list[DownloadJob],
-    http: "HttpClient",
+    http: HttpClient,
     concurrency: int = 8,
 ) -> list[DownloadResult]:
     sem = asyncio.Semaphore(concurrency)
@@ -30,7 +35,7 @@ async def download_all(
     return await asyncio.gather(*tasks)
 
 
-async def _download_one(job: DownloadJob, http: "HttpClient", sem: asyncio.Semaphore) -> DownloadResult:
+async def _download_one(job: DownloadJob, http: HttpClient, sem: asyncio.Semaphore) -> DownloadResult:
     async with sem:
         if job.save_path.exists() and job.save_path.stat().st_size > 0:
             final = job.post_process(job.save_path) if job.post_process else job.save_path

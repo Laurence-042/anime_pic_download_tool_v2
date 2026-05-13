@@ -5,7 +5,7 @@ import asyncio
 
 import aiohttp
 
-from config import DOWNLOAD_CONCURRENCY, PROXY
+from config import DOWNLOAD_CONCURRENCY, DOWNLOAD_DIR, PROXY
 from downloader import DownloadJob, download_all
 from http_client import HttpClient
 from main import _parse_one, parse_input_lines
@@ -25,8 +25,6 @@ async def _run_pipeline(url_list: list[tuple[str, list[int] | None]]):
                 print(f"[PARSE FAIL] {url}: {parsed}")
                 continue
             for img in parsed.images:
-                from config import DOWNLOAD_DIR
-
                 jobs.append(
                     DownloadJob(
                         url=img.url,

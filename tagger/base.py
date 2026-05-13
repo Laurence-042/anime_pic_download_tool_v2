@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Union
 
+from PIL import Image as PILImage
+
 
 @dataclass
 class TagResult:
@@ -17,13 +19,11 @@ class BaseTagger(ABC):
     @abstractmethod
     def get_tags(
         self,
-        image: Union[str, "Image.Image"],
+        image: Union[str, PILImage.Image],
         threshold: float = 0.35,
         character_threshold: float = 0.85,
     ) -> TagResult:
         ...
 
-    def _load_image(self, image: Union[str, "Image.Image"]):
-        from PIL import Image as PILImage
-
+    def _load_image(self, image: Union[str, PILImage.Image]) -> PILImage.Image:
         return PILImage.open(image) if isinstance(image, str) else image

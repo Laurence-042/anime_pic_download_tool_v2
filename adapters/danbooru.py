@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
+
+from bs4 import BeautifulSoup
 
 from .base import BaseAdapter, DownloadPlan, ImageFile
 from utils.filename import clean_source_from_url
+
+if TYPE_CHECKING:
+    from http_client import HttpClient
 
 
 class DanbooruAdapter(BaseAdapter):
     URL_PATTERN = r"https?://danbooru\.donmai\.us/posts/(\d+)"
 
-    async def parse(self, url: str, http: "HttpClient", want_indices: list[int] | None = None) -> DownloadPlan:
-        from bs4 import BeautifulSoup
-
+    async def parse(self, url: str, http: HttpClient, want_indices: list[int] | None = None) -> DownloadPlan:
         match = re.search(self.URL_PATTERN, url)
         if not match:
             raise ValueError(f"Invalid danbooru url: {url}")

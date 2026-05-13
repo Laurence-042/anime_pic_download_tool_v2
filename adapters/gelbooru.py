@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
+
+from bs4 import BeautifulSoup
 
 from .base import BaseAdapter, DownloadPlan, ImageFile
 from utils.filename import clean_source_from_url
+
+if TYPE_CHECKING:
+    from http_client import HttpClient
 
 
 class GelbooruAdapter(BaseAdapter):
     URL_PATTERN = r"https?://gelbooru\.com/index\.php\?.*id=(\d+)"
 
-    async def parse(self, url: str, http: "HttpClient", want_indices: list[int] | None = None) -> DownloadPlan:
-        from bs4 import BeautifulSoup
-
+    async def parse(self, url: str, http: HttpClient, want_indices: list[int] | None = None) -> DownloadPlan:
         parsed = urlparse(url)
         post_id = parse_qs(parsed.query).get("id", [None])[0]
         if not post_id:

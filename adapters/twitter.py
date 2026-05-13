@@ -3,11 +3,17 @@ from __future__ import annotations
 import asyncio
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
+
+from patchright.async_api import async_playwright
 
 from .base import BaseAdapter, DownloadPlan, ImageFile
 from config import PROXY
-from cookie_parser import parse_cookie_file
+from cookie_manager import load_cookies
+
+if TYPE_CHECKING:
+    from http_client import HttpClient
 
 _BROWSER_SEM = asyncio.Semaphore(2)
 
@@ -15,11 +21,9 @@ _BROWSER_SEM = asyncio.Semaphore(2)
 class TwitterAdapter(BaseAdapter):
     URL_PATTERN = r"https?://(?:twitter|x)\.com/[^/]+/status/(\d+)"
 
-    async def parse(self, url: str, http: "HttpClient", want_indices: list[int] | None = None) -> DownloadPlan:
-        from playwright.async_api import async_playwright
-
+    async def parse(self, url: str, http: HttpClient, want_indices: list[int] | None = None) -> DownloadPlan:
         author, post_id = self._extract_parts(url)
-        legacy = await self._fetch_legacy(url, async_playwright)
+        legacy = await self._fetch_legacy(url)
         media_items = self._extract_media(legacy)
         selected = self._apply_indices(media_items, want_indices)
 
@@ -42,11 +46,8 @@ class TwitterAdapter(BaseAdapter):
             raise ValueError(f"Invalid twitter/x url: {url}")
         return m.group("author"), m.group("id")
 
-    async def _fetch_legacy(self, url: str, async_playwright):
-        try:
-            from user_config import TWITTER_COOKIE_FILE
-        except ImportError:
-            TWITTER_COOKIE_FILE = "x.com_cookies.txt"
+    async def _fetch_legacy(self, url: str) -> dict:
+        context_cookies = load_cookies("twitter")
 
         retries = 3
         last_exc: Exception | None = None
@@ -61,7 +62,6 @@ class TwitterAdapter(BaseAdapter):
                             launch_kwargs["proxy"] = {"server": PROXY}
                         browser = await pw.chromium.launch(**launch_kwargs)
                         context = await browser.new_context()
-                        context_cookies = parse_cookie_file(TWITTER_COOKIE_FILE)
                         if context_cookies:
                             await context.add_cookies(context_cookies)
                         page = await context.new_page()
@@ -157,7 +157,7 @@ class TwitterAdapter(BaseAdapter):
                 urls.append(best["url"].split("?", 1)[0])
         return urls
 
-    def _apply_indices(self, media_urls: list[str], want_indices: list[int] | None):
+    def _apply_indices(self, media_urls: list[str], want_indices: list[int] | None) -> list[tuple[int, str]]:
         if want_indices is None:
             indices = [0]
         elif want_indices == []:

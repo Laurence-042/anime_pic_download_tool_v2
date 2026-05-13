@@ -4,22 +4,40 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from zipfile import ZipFile
 
+from apng import APNG
+from PIL import Image
+
 from .base import BaseAdapter, DownloadPlan, ImageFile
-from config import build_pixiv_headers
+from cookie_manager import cookies_to_header_string, load_cookies
+
+if TYPE_CHECKING:
+    from http_client import HttpClient
+
+
+def _build_pixiv_headers() -> dict:
+    return {
+        "accept": "*/*",
+        "accept-encoding": "gzip",
+        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "cookie": cookies_to_header_string(load_cookies("pixiv")),
+        "referer": "https://www.pixiv.net/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    }
 
 
 class PixivAdapter(BaseAdapter):
     URL_PATTERN = r"https?://www\.pixiv\.net/artworks/(\d+)"
 
-    async def parse(self, url: str, http: "HttpClient", want_indices: list[int] | None = None) -> DownloadPlan:
+    async def parse(self, url: str, http: HttpClient, want_indices: list[int] | None = None) -> DownloadPlan:
         match = re.search(self.URL_PATTERN, url)
         if not match:
             raise ValueError(f"Invalid pixiv url: {url}")
         illust_id = match.group(1)
-        headers = build_pixiv_headers()
+        headers = _build_pixiv_headers()
 
         async with http.get(f"https://www.pixiv.net/ajax/illust/{illust_id}", headers=headers) as resp:
             if resp.status != 200:
@@ -52,7 +70,7 @@ class PixivAdapter(BaseAdapter):
 
         return DownloadPlan(images=images, source_url=url)
 
-    def _build_static_images(self, illust_id: str, urls: list[str], want_indices: list[int] | None):
+    def _build_static_images(self, illust_id: str, urls: list[str], want_indices: list[int] | None) -> list[ImageFile]:
         selected = self._apply_indices(urls, want_indices)
         images: list[ImageFile] = []
         for idx, image_url in selected:
@@ -66,7 +84,7 @@ class PixivAdapter(BaseAdapter):
             )
         return images
 
-    async def _parse_ugoira(self, illust_id: str, http: "HttpClient", headers: dict, want_indices: list[int] | None):
+    async def _parse_ugoira(self, illust_id: str, http: HttpClient, headers: dict, want_indices: list[int] | None) -> list[ImageFile]:
         if want_indices not in (None, [], [0]):
             return []
 
@@ -99,9 +117,6 @@ class PixivAdapter(BaseAdapter):
         ]
 
     def _convert_ugoira_zip(self, zip_path: Path, delays: list[int]) -> Path:
-        from apng import APNG
-        from PIL import Image
-
         temp_dir = Path(tempfile.mkdtemp(prefix="pixiv_ugoira_"))
         try:
             with ZipFile(zip_path, "r") as zf:
@@ -134,7 +149,7 @@ class PixivAdapter(BaseAdapter):
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
-    def _apply_indices(self, urls: list[str], want_indices: list[int] | None):
+    def _apply_indices(self, urls: list[str], want_indices: list[int] | None) -> list[tuple[int, str]]:
         if want_indices is None:
             indices = [0]
         elif want_indices == []:

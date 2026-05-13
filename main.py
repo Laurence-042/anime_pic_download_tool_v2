@@ -3,6 +3,13 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import aiohttp
+
+from adapters import DownloadPlan, get_adapter
+from config import DOWNLOAD_CONCURRENCY, DOWNLOAD_DIR, PROXY
+from downloader import DownloadJob, download_all
+from http_client import HttpClient
+
 
 def parse_input_lines(lines: list[str]) -> list[tuple[str, list[int] | None]]:
     """解析输入行为 (url, want_indices) 列表，支持 rvk 撤销。"""
@@ -45,9 +52,7 @@ def parse_input_lines(lines: list[str]) -> list[tuple[str, list[int] | None]]:
     return result
 
 
-async def _parse_one(url: str, indices: list[int] | None, http: HttpClient):
-    from adapters import DownloadPlan, get_adapter
-
+async def _parse_one(url: str, indices: list[int] | None, http: HttpClient) -> DownloadPlan:
     adapter = get_adapter(url)
     if adapter is None:
         print(f"\033[31m[NO ADAPTER]\033[0m {url}")
@@ -56,13 +61,7 @@ async def _parse_one(url: str, indices: list[int] | None, http: HttpClient):
     return await adapter.parse(url, http, want_indices=indices)
 
 
-async def main(url_list: list[tuple[str, list[int] | None]]):
-    import aiohttp
-
-    from config import DOWNLOAD_CONCURRENCY, DOWNLOAD_DIR, PROXY
-    from downloader import DownloadJob, download_all
-    from http_client import HttpClient
-
+async def main(url_list: list[tuple[str, list[int] | None]]) -> None:
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     connector = aiohttp.TCPConnector(limit=20)

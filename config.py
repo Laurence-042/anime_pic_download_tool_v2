@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
 DOWNLOAD_DIR = Path("./download")
@@ -20,8 +23,6 @@ CAMIE_CHARACTER_THRESHOLD = 0.85
 
 
 def _detect_proxy() -> str | None:
-    import os
-
     for var in (
         "HTTPS_PROXY",
         "https_proxy",
@@ -59,20 +60,3 @@ def _detect_proxy() -> str | None:
 
 
 PROXY = _detect_proxy()
-
-
-def build_pixiv_headers() -> dict:
-    """构建 Pixiv 请求头，cookie 从 user_config 读取。"""
-    try:
-        from user_config import PIXIV_COOKIE
-    except ImportError:
-        PIXIV_COOKIE = ""
-
-    return {
-        "accept": "*/*",
-        "accept-encoding": "gzip",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cookie": PIXIV_COOKIE,
-        "referer": "https://www.pixiv.net/",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    }
