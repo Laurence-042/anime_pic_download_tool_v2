@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# 必须最先导入，在 onnxruntime/torch 被任何模块间接加载前设置 CUDA DLL 路径
+import utils.cuda  # noqa: F401
+
 import asyncio
 from pathlib import Path
 
