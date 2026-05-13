@@ -96,7 +96,7 @@ async def main(url_list: list[tuple[str, list[int] | None]]) -> None:
 
     for item in download_results:
         if item.success and item.final_path is not None:
-            process_file(item.final_path)
+            process_file(item.final_path, skip_existing=True)
 
     failed_dl = [item for item in download_results if not item.success]
     if failed_parse or failed_dl:

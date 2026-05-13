@@ -85,6 +85,9 @@ def _maybe_rename_comfy(path: Path, dry_run: bool) -> Path:
     if dry_run:
         print(f"[DRY] rename {path} -> {new_path}")
         return new_path
+    if new_path.exists():
+        path.unlink()
+        return new_path
     path.rename(new_path)
     return new_path
 
