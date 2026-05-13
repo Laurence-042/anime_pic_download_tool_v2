@@ -1,4 +1,5 @@
 aiohttp>=3.9
+# request from playwright may be forbidden by Runtime.enable leak check
 patchright>=1.52
 beautifulsoup4
 Pillow

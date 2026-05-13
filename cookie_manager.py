@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
 
@@ -21,11 +22,11 @@ COOKIES_DIR = Path("cookies")
 _SITE_CONFIG: dict[str, dict[str, str]] = {
     "pixiv": {
         "login_url": "https://accounts.pixiv.net/login",
-        "wait_pattern": r"(?:www\.)?pixiv\.net(?!/login)",
+        "wait_pattern": r"https?://(?:www\.)?pixiv\.net/(?!login)",
     },
     "twitter": {
         "login_url": "https://x.com/i/flow/login",
-        "wait_pattern": r"(?:twitter|x)\.com/home",
+        "wait_pattern": r"https?://(?:twitter|x)\.com/home",
     },
 }
 
@@ -91,7 +92,7 @@ async def login(site: str, proxy: str | None = PROXY) -> list[dict]:
         context = await browser.new_context()
         page = await context.new_page()
         await page.goto(cfg["login_url"])
-        await page.wait_for_url(cfg["wait_pattern"], timeout=300_000)
+        await page.wait_for_url(re.compile(cfg["wait_pattern"]), timeout=300_000)
         raw_cookies = await context.cookies()
         await browser.close()
 
