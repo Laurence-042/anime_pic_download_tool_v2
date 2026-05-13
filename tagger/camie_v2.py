@@ -73,7 +73,7 @@ class CamieV2Tagger(BaseTagger):
         if not AVAILABLE or not hf_hub_download or not load_safetensors:
             raise ImportError("camie_v2 dependencies are not installed")
 
-        model_path = hf_hub_download(self.REPO_ID, filename="model.safetensors")
+        model_path = hf_hub_download(self.REPO_ID, filename="camie-tagger-v2.safetensors")
         labels_path = hf_hub_download(self.REPO_ID, filename="selected_tags.csv")
 
         # Minimal loader for portability in environments without full model graph.
