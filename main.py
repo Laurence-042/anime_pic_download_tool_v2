@@ -9,6 +9,7 @@ from adapters import DownloadPlan, get_adapter
 from config import DOWNLOAD_CONCURRENCY, DOWNLOAD_DIR, PROXY
 from downloader import DownloadJob, download_all
 from http_client import HttpClient
+from post_process import process_file
 
 
 def parse_input_lines(lines: list[str]) -> list[tuple[str, list[int] | None]]:
@@ -89,6 +90,10 @@ async def main(url_list: list[tuple[str, list[int] | None]]) -> None:
                 )
 
         download_results = await download_all(jobs, http, concurrency=DOWNLOAD_CONCURRENCY)
+
+    for item in download_results:
+        if item.success and item.final_path is not None:
+            process_file(item.final_path)
 
     failed_dl = [item for item in download_results if not item.success]
     if failed_parse or failed_dl:
