@@ -4,6 +4,14 @@ import os
 import site
 from pathlib import Path
 
+# 将 HuggingFace 缓存重定向到项目内的 models/ 目录，避免占用 C 盘
+# 必须在任何 huggingface_hub / onnxruntime import 之前设置
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_MODELS_DIR = _PROJECT_ROOT / "models"
+_MODELS_DIR.mkdir(exist_ok=True)
+os.environ.setdefault("HF_HOME", str(_MODELS_DIR))
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 
 def _candidate_site_packages() -> list[Path]:
     candidates: list[Path] = []

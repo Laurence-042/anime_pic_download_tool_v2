@@ -223,3 +223,6 @@ tg_session*
 download/
 x.com_cookies.txt
 cookies/
+
+# HuggingFace model cache (large binary files)
+models/
