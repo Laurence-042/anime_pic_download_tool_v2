@@ -1,0 +1,12 @@
+aiohttp>=3.9
+playwright>=1.40
+beautifulsoup4
+Pillow
+apng
+onnxruntime-gpu
+dghs-imgutils[gpu]
+torch
+safetensors
+huggingface_hub
+# Optional: Telegram source mode
+telethon>=1.36
