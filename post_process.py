@@ -99,7 +99,12 @@ def process_file(path: Path, dry_run: bool = False, skip_existing: bool = False,
     path = _maybe_rename_comfy(path, dry_run=dry_run)
     sidecar = Path(f"{path}.json")
     if skip_existing and sidecar.exists():
-        return
+        try:
+            data = json.loads(sidecar.read_text(encoding="utf-8"))
+            if data.get("tags"):
+                return
+        except Exception:
+            pass
 
     tags = _collect_tags(path, threshold or WD14_THRESHOLD)
     if ".comfy." in path.name:

@@ -226,3 +226,5 @@ cookies/
 
 # HuggingFace model cache (large binary files)
 models/
+
+*.tmp

@@ -15,6 +15,8 @@ class DownloadJob:
     save_path: Path
     headers: dict = field(default_factory=dict)
     post_process: Callable[[Path], Path] | None = None
+    source_url: str = ""
+    source_indices: list[int] | None = None
 
 
 @dataclass
@@ -37,9 +39,6 @@ async def download_all(
 
 async def _download_one(job: DownloadJob, http: HttpClient, sem: asyncio.Semaphore) -> DownloadResult:
     async with sem:
-        if job.save_path.exists() and job.save_path.stat().st_size > 0:
-            final = job.post_process(job.save_path) if job.post_process else job.save_path
-            return DownloadResult(job=job, success=True, final_path=final)
         try:
             async with http.get(job.url, headers=job.headers) as resp:
                 if resp.status != 200:

@@ -76,6 +76,7 @@ async def main(url_list: list[tuple[str, list[int] | None]]) -> None:
         parse_results = await asyncio.gather(*parse_tasks, return_exceptions=True)
 
         jobs: list[DownloadJob] = []
+        skipped_paths: list[Path] = []
         failed_parse: list[tuple[str, list[int] | None, Exception]] = []
         for (url, indices), parsed in zip(url_list, parse_results):
             if isinstance(parsed, Exception):
@@ -83,16 +84,25 @@ async def main(url_list: list[tuple[str, list[int] | None]]) -> None:
                 print(f"\033[31m[PARSE FAIL]\033[0m {url}: {parsed}")
                 continue
             for img in parsed.images:
-                jobs.append(
-                    DownloadJob(
-                        url=img.url,
-                        save_path=DOWNLOAD_DIR / img.filename,
-                        headers=img.headers,
-                        post_process=img.post_process,
+                save_path = DOWNLOAD_DIR / img.filename
+                if save_path.exists() and save_path.stat().st_size > 0:
+                    skipped_paths.append(save_path)
+                else:
+                    jobs.append(
+                        DownloadJob(
+                            url=img.url,
+                            save_path=save_path,
+                            headers=img.headers,
+                            post_process=img.post_process,
+                            source_url=url,
+                            source_indices=indices,
+                        )
                     )
-                )
 
         download_results = await download_all(jobs, http, concurrency=DOWNLOAD_CONCURRENCY)
+
+    for path in skipped_paths:
+        process_file(path, skip_existing=True)
 
     for item in download_results:
         if item.success and item.final_path is not None:
@@ -104,8 +114,14 @@ async def main(url_list: list[tuple[str, list[int] | None]]) -> None:
         for url, indices, _exc in failed_parse:
             index_str = " ".join(map(str, indices)) if indices else ""
             print(f"{url} {index_str}".strip())
+        seen: set[tuple] = set()
         for item in failed_dl:
-            print(f"{item.job.url}  →  {item.job.save_path.name}")
+            key = (item.job.source_url, tuple(item.job.source_indices) if item.job.source_indices is not None else None)
+            if key in seen:
+                continue
+            seen.add(key)
+            index_str = " ".join(map(str, item.job.source_indices)) if item.job.source_indices else ""
+            print(f"{item.job.source_url} {index_str}".strip())
 
 
 def _load_lines_from_file(path: Path) -> list[str]:
