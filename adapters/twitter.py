@@ -76,10 +76,9 @@ class TwitterAdapter(BaseAdapter):
                                 )
                             )
 
-                        goto_task = page.goto(url)
-                        response_task = page.wait_for_response(_filter, timeout=30_000)
-                        await asyncio.gather(goto_task, response_task)
-                        response = response_task.result()
+                        async with page.expect_response(_filter, timeout=30_000) as response_info:
+                            await page.goto(url)
+                        response = await response_info.value
                         payload = await response.json()
                         legacy = self._parse_legacy_from_payload(payload)
                         if not legacy:
