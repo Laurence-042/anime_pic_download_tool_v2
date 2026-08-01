@@ -3,45 +3,15 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-import aiohttp
-
-from config import DOWNLOAD_CONCURRENCY, DOWNLOAD_DIR, PROXY
-from downloader import DownloadJob, download_all
-from http_client import HttpClient
-from main import _parse_one, parse_input_lines
-
-
-async def _run_pipeline(url_list: list[tuple[str, list[int] | None]]):
-    connector = aiohttp.TCPConnector(limit=20)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        http = HttpClient(session, proxy=PROXY)
-
-        parse_tasks = [_parse_one(url, indices, http) for url, indices in url_list]
-        parse_results = await asyncio.gather(*parse_tasks, return_exceptions=True)
-
-        jobs: list[DownloadJob] = []
-        for (url, _indices), parsed in zip(url_list, parse_results):
-            if isinstance(parsed, Exception):
-                print(f"[PARSE FAIL] {url}: {parsed}")
-                continue
-            for img in parsed.images:
-                jobs.append(
-                    DownloadJob(
-                        url=img.url,
-                        save_path=DOWNLOAD_DIR / img.filename,
-                        headers=img.headers,
-                        post_process=img.post_process,
-                    )
-                )
-
-        await download_all(jobs, http, concurrency=DOWNLOAD_CONCURRENCY)
+from main import parse_input_lines
+from pipeline import run_pipeline
 
 
 async def process_messages(messages):
     lines = [m.raw_text or "" for m in messages]
     parsed = parse_input_lines(lines)
     if parsed:
-        await _run_pipeline(parsed)
+        await run_pipeline(parsed)
     for msg in messages:
         await msg.delete()
 
