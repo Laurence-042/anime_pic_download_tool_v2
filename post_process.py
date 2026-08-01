@@ -49,6 +49,7 @@ def _collect_tags(path: Path, threshold: float):
     tags: set[str] = set()
     source_for_tagger = _pick_tagger_input(path)
 
+    print(f"[TAG] {path.name}: WD14 ...", end="", flush=True)
     try:
         wd = WD14Tagger().get_tags(
             str(source_for_tagger),
@@ -58,9 +59,11 @@ def _collect_tags(path: Path, threshold: float):
         tags.update(wd.tags.keys())
         if wd.rating:
             tags.add(f"rating:{wd.rating}")
+        print(f" {len(wd.tags)} tags", flush=True)
     except Exception as exc:
-        print(f"[WD14] {path.name}: {exc}")
+        print(f" FAILED: {exc}", flush=True)
 
+    print(f"[TAG] {path.name}: CamieV2 ...", end="", flush=True)
     try:
         camie = CamieV2Tagger().get_tags(
             str(source_for_tagger),
@@ -70,8 +73,9 @@ def _collect_tags(path: Path, threshold: float):
         tags.update(camie.tags.keys())
         if camie.rating:
             tags.add(f"rating:{camie.rating}")
+        print(f" {len(camie.tags)} tags", flush=True)
     except Exception as exc:
-        print(f"[CAMIE] {path.name}: {exc}")
+        print(f" FAILED: {exc}", flush=True)
 
     return tags
 
