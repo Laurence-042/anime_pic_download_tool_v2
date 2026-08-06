@@ -10,10 +10,18 @@ from pipeline import run_pipeline
 async def process_messages(messages):
     lines = [m.raw_text or "" for m in messages]
     parsed = parse_input_lines(lines)
+    failed_keys: set[tuple[str, tuple[int, ...] | None]] = set()
     if parsed:
-        await run_pipeline(parsed)
+        failed_keys = await run_pipeline(parsed)
+
+    # 仅删除全部条目都下载成功的消息；有失败的保留收藏以便重试
     for msg in messages:
-        await msg.delete()
+        msg_keys = {
+            (url, tuple(indices) if indices else None)
+            for url, indices in parse_input_lines([msg.raw_text or ""])
+        }
+        if msg_keys and not (msg_keys & failed_keys):
+            await msg.delete()
 
 
 async def run(once: bool = False):

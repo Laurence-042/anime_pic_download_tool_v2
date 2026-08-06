@@ -21,10 +21,17 @@ async def _parse_one(url: str, indices: list[int] | None, http: HttpClient) -> D
     return await adapter.parse(url, http, want_indices=indices)
 
 
-async def run_pipeline(url_list: list[tuple[str, list[int] | None]]) -> None:
+def _source_key(url: str, indices: list[int] | None) -> tuple[str, tuple[int, ...] | None]:
+    return (url, tuple(indices) if indices else None)
+
+
+async def run_pipeline(url_list: list[tuple[str, list[int] | None]]) -> set[tuple[str, tuple[int, ...] | None]]:
     """统一下载管线：解析 → 下载 → 后处理(tag/侧车)。
 
     供 CLI (main.py) 与 Telegram (telegram_source.py) 共用。
+
+    返回失败的源条目集合，键为 (url, indices_tuple|None)，
+    供调用方（如 Telegram 流程）决定是否删除对应收藏。
     """
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -69,9 +76,11 @@ async def run_pipeline(url_list: list[tuple[str, list[int] | None]]) -> None:
             process_file(item.final_path, skip_existing=True)
 
     failed_dl = [item for item in download_results if not item.success]
+    failed_keys: set[tuple[str, tuple[int, ...] | None]] = set()
     if failed_parse or failed_dl:
         print("\n======= FAILED =======")
         for url, indices, _exc in failed_parse:
+            failed_keys.add(_source_key(url, indices))
             index_str = " ".join(map(str, indices)) if indices else ""
             print(f"{url} {index_str}".strip())
         seen: set[tuple] = set()
@@ -80,5 +89,8 @@ async def run_pipeline(url_list: list[tuple[str, list[int] | None]]) -> None:
             if key in seen:
                 continue
             seen.add(key)
+            failed_keys.add(key)
             index_str = " ".join(map(str, item.job.source_indices)) if item.job.source_indices else ""
             print(f"{item.job.source_url} {index_str}".strip())
+
+    return failed_keys
